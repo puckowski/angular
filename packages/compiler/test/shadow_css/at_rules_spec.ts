@@ -171,6 +171,22 @@ describe('ShadowCss, at-rules', () => {
           }
         }`);
     });
+
+    it('should scope normal selectors inside a named container rule with a style query', () => {
+      const css = `
+          @container stats style(--theme: dark) {
+              .stat {
+                color: red;
+              }
+          }`;
+      const result = shim(css, 'host-a');
+      expect(result).toEqualCss(`
+        @container stats style(--theme: dark) {
+          .stat[host-a] {
+            color: red;
+          }
+        }`);
+    });
   });
 
   describe('@document', () => {
