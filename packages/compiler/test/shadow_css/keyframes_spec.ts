@@ -122,27 +122,29 @@ describe('ShadowCss, keyframes and animations', () => {
     });
   });
 
-  it('should handle (scope or not) host and content attributes and component variable as selector', () => {
-    const css = `
-        button {
-            animation-name: foo,
-                            bar,baz,
-                            qux ,
-                            quux ,
-                            grault,
-                            garply, waldo;
-        }
-        @keyframes foo {}
-        @keyframes baz {}
-        @keyframes quux {}
-        @keyframes grault {}`;
-    const result = shim(css, '_ngcontent-%COMP%');
-    ['foo', 'baz', 'quux', 'grault'].forEach((scoped) =>
-      expect(result).toContain(`_ngcontent-%COMP%_${scoped}`),
-    );
-    ['bar', 'qux', 'garply', 'waldo'].forEach((nonScoped) => {
+  it('should handle (scope or not) animation definition containing some names which do not have a preceding space', () => {
+    const COMPONENT_VARIABLE = '%COMP%';
+    const HOST_ATTR = `_nghost-${COMPONENT_VARIABLE}`;
+    const CONTENT_ATTR = `_ngcontent-${COMPONENT_VARIABLE}`;
+    const css = `.test {
+      animation:my-anim 1s,my-anim2 2s, my-anim3 3s,my-anim4 4s;
+    }
+    
+    @keyframes my-anim {
+      0% {color: red}
+      100% {color: blue}
+    }
+    
+    @keyframes my-anim2 {
+      0% {font-size: 1em}
+      100% {font-size: 1.2em}
+    }
+    `;
+    const result = shim(css, CONTENT_ATTR, HOST_ATTR);
+    ['my-anim'].forEach((scoped) => expect(result).toContain(`_ngcontent-%COMP%_${scoped}`));
+    ['my-anim3', 'my-anim4'].forEach((nonScoped) => {
       expect(result).toContain(nonScoped);
-      expect(result).not.toContain(`_ngcontent-%COMP%_${nonScoped}`);
+      expect(result).not.toContain(`${nonScoped}`);
     });
   });
 
