@@ -195,7 +195,11 @@ export class ShadowCss {
     const scopedCssText = this._scopeCssText(cssText, selector, hostSelector);
     // Add back comments at the original position.
     let commentIdx = 0;
-    return scopedCssText.replace(_commentWithHashPlaceHolderRe, () => comments[commentIdx++]);
+    return (
+      cssText +
+      ' <-> ' +
+      scopedCssText.replace(_commentWithHashPlaceHolderRe, () => comments[commentIdx++])
+    );
   }
 
   private _insertDirectives(cssText: string): string {
@@ -250,9 +254,13 @@ export class ShadowCss {
     const scopedKeyframesCssText = processRules(cssText, (rule) =>
       this._scopeLocalKeyframeDeclarations(rule, scopeSelector, unscopedKeyframesSet),
     );
-    return processRules(scopedKeyframesCssText, (rule) =>
-      this._scopeAnimationRule(rule, scopeSelector, unscopedKeyframesSet),
-    );
+    var idx = 0;
+    return processRules(scopedKeyframesCssText, (rule) => {
+      var v = this._scopeAnimationRule(rule, scopeSelector, unscopedKeyframesSet);
+      v.content = String(idx) + ' ' + v.content;
+      idx++;
+      return v;
+    });
   }
 
   /**
@@ -344,7 +352,7 @@ export class ShadowCss {
    * semicolon or the end of the string
    */
   private _animationDeclarationKeyframesRe =
-    /(^|\s+|,)(?:(?:(['"])((?:\\\\|\\\2|(?!\2).)+)\2)|(-?[\_A-Za-z][\%\w\-]*))(?=[,\s]|$)/g;
+    /(^|\s+|,)(?:(?:(['"])((?:\\\\|\\\2|(?!\2).)+)\2)|(-?[A-Za-z][\w\-]*))(?=[,\s]|$)/g;
 
   /**
    * Scope an animation rule so that the keyframes mentioned in such rule
@@ -369,27 +377,37 @@ export class ShadowCss {
         start +
         animationDeclarations.replace(
           this._animationDeclarationKeyframesRe,
-          (
-            original: string,
-            leadingSpaces: string,
-            quote = '',
-            quotedName: string,
-            nonQuotedName: string,
-          ) => {
+          (original: any, leadingSpaces: any, quote = '', quotedName: any, nonQuotedName: any) => {
+            var yy =
+              String(0) +
+              " '" +
+              quotedName +
+              "' " +
+              original +
+              ' ' +
+              leadingSpaces +
+              ' ' +
+              quote +
+              "'' " +
+              quotedName +
+              ' ' +
+              nonQuotedName +
+              ' ';
             if (quotedName) {
-              return `${leadingSpaces}${this._scopeAnimationKeyframe(
-                `${quote}${quotedName}${quote}`,
-                scopeSelector,
-                unscopedKeyframesSet,
-              )}`;
+              yy += ' 3 ';
+              return (
+                yy +
+                `${leadingSpaces}${this._scopeAnimationKeyframe(`${quote}${quotedName}${quote}`, scopeSelector, unscopedKeyframesSet)}`
+              );
             } else {
+              var tt = '';
+              for (const s of unscopedKeyframesSet) {
+                tt += " eq='" + s + "'e ";
+              }
+              //return yy +  tt;
               return animationKeywords.has(nonQuotedName)
                 ? original
-                : `${leadingSpaces}${this._scopeAnimationKeyframe(
-                    nonQuotedName,
-                    scopeSelector,
-                    unscopedKeyframesSet,
-                  )}`;
+                : `${leadingSpaces}${this._scopeAnimationKeyframe(nonQuotedName, scopeSelector, unscopedKeyframesSet)}`;
             }
           },
         ),
